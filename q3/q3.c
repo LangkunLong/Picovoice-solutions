@@ -12,7 +12,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <crtdbg.h>
 
+#define _CRTDBG_MAP_ALLOC
 #define MAX_WORD_SIZE 100 // assume maximum size of a word is 100 bytes
 #define MAX_TABLE_SIZE 1000000 // assume maximum size of hashtable is 1 million
 
@@ -35,10 +37,13 @@ unsigned int hash(const char *word){
 
 //insert word if previously not present, else increment frequency
 void hashmap_insert(char * new_word){
-    unsigned int hash_index = hash(new_word);
-    Word_count *head_ptr, *prev_ptr = hashtable[hash_index];
+    unsigned int hash_index = hash(new_word) % MAX_TABLE_SIZE;
+    //printf("after hash\n");
+    Word_count *head_ptr = hashtable[hash_index];
+    Word_count *prev_ptr = NULL;
     while(head_ptr != NULL){
         if (strcmp(head_ptr->word, new_word) == 0){
+            //printf("increase frequency");
             head_ptr->frequency ++;
             return;
         }else{
@@ -50,8 +55,13 @@ void hashmap_insert(char * new_word){
     Word_count *new_node = (Word_count*)malloc(sizeof(Word_count));
     new_node->frequency = 1;
     new_node->next = NULL;
-    strcmp(new_node->word, new_word);
-    prev_ptr ->next = new_node;
+    strcpy(new_node->word, new_word);
+
+    if (prev_ptr == NULL){
+        hashtable[hash_index] = new_node;
+    }else{
+        prev_ptr -> next = new_node;
+    }
 }
 
 // get rid of special characters and convert to lowercase
@@ -67,6 +77,7 @@ void preprocess_word(char *word){
 
 // read .txt and insert each word to hashtable
 void process_file(const char *file_path){
+    //printf("%s", file_path);
     FILE *file_Ptr = fopen(file_path, "r");
     if(file_Ptr == NULL){
         printf("Error: Could not open file\n");
@@ -74,9 +85,12 @@ void process_file(const char *file_path){
     }
     char word[MAX_WORD_SIZE];
     while(fscanf(file_Ptr, "%s", word) != EOF){
+        //printf("here\n");
         preprocess_word(word);
         if (strlen(word) > 0){
+            //printf("here2\n");
             hashmap_insert(word);
+            //printf("here4\n");
         }
     }
 }
@@ -142,13 +156,13 @@ char **find_frequent_words(const char *path, int32_t n){
     }
     
     //free memory
-    free(all_entry_array); // free storage array
+    //free(all_entry_array); // free storage array
     for(int i = 0; i < MAX_TABLE_SIZE; i++){
         Word_count *head_ptr = hashtable[i];
         while(head_ptr != NULL){
             Word_count *temp = head_ptr;
             head_ptr = head_ptr->next;
-            free(temp);
+            //free(temp);
         }
     }
 
@@ -156,11 +170,15 @@ char **find_frequent_words(const char *path, int32_t n){
 } 
 
 int main(){
-    int frequent_word = 5;
-    char **n_frequent_words = find_frequent_words("text.txt", frequent_word);
+    // make sure memory is freed
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    
+    int frequent_word = 10;
+    char **n_frequent_words = find_frequent_words("C:/Users/langk/OneDrive/Desktop/2024-2025 job apps/Coding questions/Picovoice/text.txt", frequent_word);
 
     for (int i = 0; i < frequent_word; i++) {
         free(n_frequent_words[i]);
     }
     free(n_frequent_words);
+    return 0;
 }
